@@ -3,7 +3,16 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <sys/stat.h>
-
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+typedef struct
+{
+    char SECT_NAME[16];
+    int SECT_TYPE;
+    int SECT_OFFSET;
+    int SECT_SIZE;
+}SECTION_HEADERS;
 void listRec(const char *path, int size_greater, char* name_ends_with, int i)
 {
     DIR *dir=NULL;
@@ -118,6 +127,54 @@ void listItr(const char *path, int size_greater, char* name_ends_with, int i)
     closedir(dir);
 }
 
+void parseFunction(char* path)
+{
+    int fisier= open(path, O_RDONLY);
+    if(fisier == -1)
+    	return;
+    lseek(fisier, -1 , SEEK_END);
+    char MAGIC;
+    read(fisier, &MAGIC, 1);
+    if(MAGIC!='Z')
+    {    
+        printf("ERROR\nwrong magic");
+    	return;
+    }
+    
+    lseek(fisier, -3, SEEK_END);
+    int HEADER_SIZE;
+    read(fisier, &HEADER_SIZE, 2);
+    lseek(fisier, -HEADER_SIZE, SEEK_END);
+    int VERSION;
+    read(fisier, &VERSION, 1);
+    if((VERSION < 107) || (VERSION > 160))
+        {printf("ERROR\nwrong version");
+        return;}
+    int NO_OF_SECTIONS;
+    read(fisier, &NO_OF_SECTIONS, 1);
+    if((NO_OF_SECTIONS<6) || (NO_OF_SECTIONS>17))
+        {printf("ERROR\nwrong sect_nr");
+        return;}
+    SECTION_HEADERS *SH=(SECTION_HEADERS*)malloc(sizeof(SECTION_HEADERS)*NO_OF_SECTIONS);
+    for(int i=0; i<NO_OF_SECTIONS; i++)
+    {
+        read(fisier, SH[i].SECT_NAME, 15);
+        SH[i].SECT_NAME[15]='\0';
+        read(fisier, &SH[i].SECT_TYPE, 4);
+    	if(SH[i].SECT_TYPE!=72 && SH[i].SECT_TYPE!=73 && SH[i].SECT_TYPE!=75 && SH[i].SECT_TYPE!=79 && SH[i].SECT_TYPE!=47 && SH[i].SECT_TYPE!=10)
+    	{
+    	    printf("ERROR\nwrong sect_types");
+            return;
+        }
+        read(fisier, &SH[i].SECT_OFFSET, 4);
+        read(fisier, &SH[i].SECT_SIZE, 4);
+    }
+    
+    
+    free(SH);
+        
+}
+
 
 int main(int argc, char **argv)
 {
@@ -156,15 +213,24 @@ int main(int argc, char **argv)
                  {
                      sscanf(argv[j], "name_ends_with=%s", name_ends_with);
                  }
+                 if(strcmp(argv[j], "parse") == 0)
+                 {
+                     OK=3;
+                 }
             }
             if(OK==2)
             {
             	 
                  listRec(path, size_greater, name_ends_with, i);
             }
-            else
+            if(OK==1)
             {
                  listItr(path, size_greater, name_ends_with, i);
+            }
+            
+            if(OK==3)
+            {
+                 parseFunction(path);
             }
         }
     }
