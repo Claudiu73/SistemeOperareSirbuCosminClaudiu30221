@@ -171,13 +171,20 @@ void parseFunction(char* path)
     	if(SH[i].SECT_TYPE!=72 && SH[i].SECT_TYPE!=73 && SH[i].SECT_TYPE!=75 && SH[i].SECT_TYPE!=79 && SH[i].SECT_TYPE!=47 && SH[i].SECT_TYPE!=10)
     	{
     	    printf("ERROR\nwrong sect_types");
+            free(SH);
             return;
+            
         }
         read(fisier, &SH[i].SECT_OFFSET, 4);
         read(fisier, &SH[i].SECT_SIZE, 4);
     }
-    
-    
+    printf("SUCCESS\n");
+    printf("version=%d\n", VERSION);
+    printf("nr_sections=%d\n", NO_OF_SECTIONS);
+    for(int j=0; j<NO_OF_SECTIONS; j++)
+    {
+        printf("section%d: %s %d %d\n", j+1, SH[j].SECT_NAME, SH[j].SECT_TYPE, SH[j].SECT_SIZE);
+    }
     free(SH);
         
 }
