@@ -130,10 +130,14 @@ void listItr(const char *path, int size_greater, char* name_ends_with, int i)
 void parseFunction(char* path)
 {
     int fisier= open(path, O_RDONLY);
+    int NO_OF_SECTIONS=0;
+    int VERSION=0;
+    char MAGIC='\0';
+    int HEADER_SIZE=0;
     if(fisier == -1)
     	return;
+
     lseek(fisier, -1 , SEEK_END);
-    char MAGIC;
     read(fisier, &MAGIC, 1);
     if(MAGIC!='Z')
     {    
@@ -141,18 +145,17 @@ void parseFunction(char* path)
     	return;
     }
     
+    
     lseek(fisier, -3, SEEK_END);
-    int HEADER_SIZE;
     read(fisier, &HEADER_SIZE, 2);
+    
     lseek(fisier, -HEADER_SIZE, SEEK_END);
-    int VERSION;
     read(fisier, &VERSION, 1);
     if((VERSION < 107) || (VERSION > 160))
     {    
         printf("ERROR\nwrong version");
         return;
     }
-    int NO_OF_SECTIONS;
     read(fisier, &NO_OF_SECTIONS, 1);
     if((NO_OF_SECTIONS<6) || (NO_OF_SECTIONS>17))
     {
