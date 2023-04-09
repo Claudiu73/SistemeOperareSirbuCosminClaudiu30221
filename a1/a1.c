@@ -189,10 +189,128 @@ void parseFunction(char* path)
         
 }
 
+void extractFunction(char* path, int section, int line)
+{
+    int fisier= open(path, O_RDONLY);
+    int linie_crr=1;
+    int NO_OF_SECTIONS=0;
+    int VERSION=0;
+    char MAGIC='\0';
+    int HEADER_SIZE=0;
+    char caracter1;
+    char caracter2;
+    int OK=0;
+    char exemplu[1000000];
+    int k=0;
+    int j;
+    if(fisier == -1)
+    	return;
+
+    lseek(fisier, -1 , SEEK_END);
+    read(fisier, &MAGIC, 1);
+    if(MAGIC!='Z')
+    {    
+        printf("ERROR\ninvalid file");
+    	return;
+    }
+    
+    
+    lseek(fisier, -3, SEEK_END);
+    read(fisier, &HEADER_SIZE, 2);
+    
+    lseek(fisier, -HEADER_SIZE, SEEK_END);
+    read(fisier, &VERSION, 1);
+    if((VERSION < 107) || (VERSION > 160))
+    {    
+        printf("ERROR\ninvalid file");
+        return;
+    }
+    read(fisier, &NO_OF_SECTIONS, 1);
+    if((NO_OF_SECTIONS<6) || (NO_OF_SECTIONS>17))
+    {
+        printf("ERROR\ninvalid file");
+        return;
+    }
+    SECTION_HEADERS *SH=(SECTION_HEADERS*)malloc(sizeof(SECTION_HEADERS)*NO_OF_SECTIONS);
+    for(int i=0; i<NO_OF_SECTIONS; i++)
+    {
+        read(fisier, SH[i].SECT_NAME, 15);
+        SH[i].SECT_NAME[15]='\0';
+        read(fisier, &SH[i].SECT_TYPE, 4);
+    	if(SH[i].SECT_TYPE!=72 && SH[i].SECT_TYPE!=73 && SH[i].SECT_TYPE!=75 && SH[i].SECT_TYPE!=79 && SH[i].SECT_TYPE!=47 && SH[i].SECT_TYPE!=10)
+    	{
+    	    printf("ERROR\nwinvalid file");
+            free(SH);
+            return;
+            
+        }
+        read(fisier, &SH[i].SECT_OFFSET, 4);
+        read(fisier, &SH[i].SECT_SIZE, 4);
+    }
+    
+    if(section>NO_OF_SECTIONS)
+    {
+        printf("ERROR\ninvalid section");
+        return;
+    }
+    
+    if(line<1)
+    {
+        printf("ERROR\ninvalid line");
+    	return;
+    }
+    
+    lseek(fisier, SH[section-1].SECT_OFFSET, SEEK_SET);
+    read(fisier, &caracter1, 1);
+    for(j=1; j<SH[section-1].SECT_SIZE; j++)
+    {
+    	read(fisier, &caracter2, 1);
+    	
+    	if(linie_crr==line)
+    	{
+    	    if(OK==0)
+    	    {
+    	        printf("SUCCESS\n");
+    	        OK=1;
+    	    }
+    	    if(j==1 && line==1)
+    	    {
+    	        exemplu[k++]=caracter1;
+    	    }
+    	    exemplu[k++]=caracter2;
+    	}
+    	if(caracter1=='\x0D' && caracter2=='\x0A')
+    	{
+    	    linie_crr++;
+    	}
+    	caracter1=caracter2;
+    }
+    
+    if(line>linie_crr)
+    {
+    	printf("ERROR\ninvalid line");
+    	free(SH);
+    	return;
+    }
+    
+    if(linie_crr==line && j==SH[section-1].SECT_SIZE)
+    {
+        j=k-1;
+    }
+    else j=k-3;
+    
+    for(int q=j; q>=0; q--)
+    {
+        printf("%c", exemplu[q]);
+    }
+    free(SH);
+}
 
 int main(int argc, char **argv)
 {
     char path[200];
+    int section;
+    int line=0;
     int i=0;
     int OK=0;
     int size_greater=0;
@@ -231,6 +349,18 @@ int main(int argc, char **argv)
                  {
                      OK=3;
                  }
+                 if(strcmp(argv[j], "extract")==0)
+                 {
+                     OK=4;
+                 }
+                 if(strncmp(argv[j], "section=", 8) == 0)
+                 {
+                     sscanf(argv[j], "section=%d", &section);
+                 }
+                 if(strncmp(argv[j], "line=", 5) == 0)
+                 {
+                     sscanf(argv[j], "line=%d", &line);
+                 }
             }
             if(OK==2)
             { 
@@ -244,6 +374,10 @@ int main(int argc, char **argv)
             if(OK==3)
             {
                  parseFunction(path);
+            }
+            if(OK==4)
+            {
+            	 extractFunction(path, section, line);
             }
         }
     }
