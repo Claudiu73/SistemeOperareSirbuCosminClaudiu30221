@@ -148,13 +148,17 @@ void parseFunction(char* path)
     int VERSION;
     read(fisier, &VERSION, 1);
     if((VERSION < 107) || (VERSION > 160))
-        {printf("ERROR\nwrong version");
-        return;}
+    {    
+        printf("ERROR\nwrong version");
+        return;
+    }
     int NO_OF_SECTIONS;
     read(fisier, &NO_OF_SECTIONS, 1);
     if((NO_OF_SECTIONS<6) || (NO_OF_SECTIONS>17))
-        {printf("ERROR\nwrong sect_nr");
-        return;}
+    {
+        printf("ERROR\nwrong sect_nr");
+        return;
+    }
     SECTION_HEADERS *SH=(SECTION_HEADERS*)malloc(sizeof(SECTION_HEADERS)*NO_OF_SECTIONS);
     for(int i=0; i<NO_OF_SECTIONS; i++)
     {
@@ -219,8 +223,7 @@ int main(int argc, char **argv)
                  }
             }
             if(OK==2)
-            {
-            	 
+            { 
                  listRec(path, size_greater, name_ends_with, i);
             }
             if(OK==1)
