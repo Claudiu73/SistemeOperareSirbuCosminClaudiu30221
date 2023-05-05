@@ -6,11 +6,46 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <fcntl.h>
 #include "a2_helper.h"
 
+typedef struct 
+{
+    int process_no;
+    int thread_no;
+}InfoStruct;
+
+sem_t *s1;
+sem_t *s2;
+
+void* thread_fn(void* arg)
+{
+    InfoStruct* a = (InfoStruct*) arg;
+    if(a->process_no == 9 && a->thread_no == 3)
+    {
+         sem_wait(s1);
+    }
+    info(BEGIN, a->process_no, a->thread_no);
+    
+    if(a->process_no == 9 && a->thread_no == 5)
+    {
+    	sem_post(s1); 
+        sem_wait(s2);
+    }
+    info(END, a->process_no, a->thread_no);
+    if(a->process_no == 9 && a->thread_no == 3)
+    {
+    	sem_post(s2);
+    }
+    return NULL;
+}
 int main()
 {
     init();
+    sem_unlink("s1");
+    sem_unlink("s2");
+    s1=sem_open("s1", O_CREAT, 0644, 0);
+    s2=sem_open("s2", O_CREAT, 0644, 0);
     info(BEGIN, 1, 0);
     pid_t p2 = fork();
     if(p2 == 0)
@@ -54,7 +89,19 @@ int main()
     	{
     	    info(BEGIN, 9, 0);
     	    
+    	    pthread_t tid[5];
+    	    InfoStruct v[5];
+    	    for(int i = 0; i < 5; i++)
+    	    {
+    	    	v[i].process_no = 9;
+		v[i].thread_no = i + 1;
+    	        pthread_create(&tid[i], NULL, thread_fn, &v[i]);
+    	    }
     	    
+    	    for(int i = 0; i < 5; i++)
+    	    {
+    	        pthread_join(tid[i], NULL);
+    	    }
     	    
     	    info(END, 9, 0);
     	    exit(9);
